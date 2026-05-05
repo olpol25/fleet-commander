@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.fleetcommander.brief</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/python3</string>
+        <string>INSTALL_PATH/brief.py</string>
+    </array>
+
+    <!-- Run every Friday at 5pm -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key>
+        <integer>5</integer>
+        <key>Hour</key>
+        <integer>17</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <!-- Environment variables — fill these in -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>ANTHROPIC_API_KEY</key>
+        <string>YOUR_API_KEY_HERE</string>
+
+        <!-- Optional: remove these three lines if you don't want email delivery -->
+        <key>FLEET_EMAIL_TO</key>
+        <string>you@gmail.com</string>
+        <key>FLEET_EMAIL_FROM</key>
+        <string>you@gmail.com</string>
+        <key>FLEET_SMTP_PASSWORD</key>
+        <string>YOUR_APP_PASSWORD_HERE</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/YOURUSERNAME/.fleet-commander/fleet-commander.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/YOURUSERNAME/.fleet-commander/fleet-commander.log</string>
+</dict>
+</plist>

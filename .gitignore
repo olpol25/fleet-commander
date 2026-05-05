@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+
+# Logs and runtime data
+*.log
+.fleet-commander/
+
+# Secrets — never commit these
+.env
+*.env
+
+# Unrelated files in this directory
+aeo_gap_analysis.py
+aeo_gaps.csv
+CLAUDE.md
