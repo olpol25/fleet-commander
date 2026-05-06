@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+
+  <!-- Fleet Commander — Windows Task Scheduler template                       -->
+  <!-- Before installing, replace:                                              -->
+  <!--   INSTALL_PATH  → full path to the folder containing brief.py            -->
+  <!--                   e.g. C:\Users\you\fleet-commander                       -->
+  <!--   PYTHON_PATH   → full path to python.exe                                -->
+  <!--                   run 'where python' or 'where py' to find it            -->
+  <!--                   e.g. C:\Users\you\AppData\Local\Programs\Python\Python312\python.exe -->
+  <!--   YOURUSERNAME  → your Windows username (run 'whoami' to confirm)        -->
+  <!--                                                                           -->
+  <!-- ANTHROPIC_API_KEY must be set as a Windows User environment variable,    -->
+  <!-- NOT in this file. Open: System Properties → Environment Variables →      -->
+  <!-- User variables → New → Name: ANTHROPIC_API_KEY, Value: sk-ant-...        -->
+  <!--                                                                           -->
+  <!-- Install:                                                                  -->
+  <!--   schtasks /create /xml fleet-commander-task.xml /tn FleetCommander      -->
+  <!--                                                                           -->
+  <!-- Test it fires:                                                            -->
+  <!--   schtasks /run /tn FleetCommander                                        -->
+  <!--                                                                           -->
+  <!-- Uninstall:                                                                -->
+  <!--   schtasks /delete /tn FleetCommander /f                                  -->
+
+  <RegistrationInfo>
+    <Description>Fleet Commander — generate weekly advisor brief every Friday at 5pm</Description>
+  </RegistrationInfo>
+
+  <Triggers>
+    <!-- Every Friday at 5:00 PM -->
+    <CalendarTrigger>
+      <StartBoundary>2026-01-03T17:00:00</StartBoundary>
+      <ScheduleByWeek>
+        <WeeksInterval>1</WeeksInterval>
+        <DaysOfWeek>
+          <Friday />
+        </DaysOfWeek>
+      </ScheduleByWeek>
+    </CalendarTrigger>
+  </Triggers>
+
+  <Principals>
+    <Principal id="Author">
+      <UserId>YOURUSERNAME</UserId>
+      <LogonType>InteractiveToken</LogonType>
+      <RunLevel>LeastPrivilege</RunLevel>
+    </Principal>
+  </Principals>
+
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <ExecutionTimeLimit>PT1H</ExecutionTimeLimit>
+    <Priority>7</Priority>
+  </Settings>
+
+  <Actions Context="Author">
+    <Exec>
+      <Command>PYTHON_PATH</Command>
+      <Arguments>INSTALL_PATH\brief.py</Arguments>
+      <WorkingDirectory>INSTALL_PATH</WorkingDirectory>
+    </Exec>
+  </Actions>
+
+</Task>

@@ -98,9 +98,9 @@ def validate_schema(conn):
             log.error(
                 "ScreenPipe schema mismatch — table '%s' missing columns: %s\n"
                 "You may have upgraded ScreenPipe (pinned to %s).\n"
-                "Run: sqlite3 ~/.screenpipe/db.sqlite .schema\n"
+                "Run: sqlite3 %s .schema\n"
                 "Then update REQUIRED_COLUMNS in brief.py.",
-                table, missing, SCREENPIPE_VERSION,
+                table, missing, SCREENPIPE_VERSION, DB_PATH,
             )
             sys.exit(1)
 
@@ -424,6 +424,8 @@ nuanced, deep dive, actionable, streamline."""
 # ---------------------------------------------------------------------------
 
 def send_notification(title, message):
+    if sys.platform != "darwin":
+        return  # osascript is Mac-only; Windows/Linux gets the brief via email or stdout
     try:
         script = f'display notification "{message}" with title "{title}"'
         subprocess.run(["osascript", "-e", script], check=True, capture_output=True)
