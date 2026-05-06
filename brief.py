@@ -394,6 +394,7 @@ nuanced, deep dive, actionable, streamline."""
         },
     )
 
+    log.info("contacting Claude API — this takes 20-60 seconds...")
     try:
         with urllib.request.urlopen(req, timeout=60) as resp:
             result = json.loads(resp.read())
@@ -559,7 +560,7 @@ def main():
     if candidates:
         lines += ["---", "## Automation candidates", ""]
         for c in candidates:
-            lines += [f"**{c['title']}** — {c['what_agent_does']}", ""]
+            lines += [f"### {c['title']}", "", c['what_agent_does'], ""]
 
     if args.explain and candidates:
         lines += ["---", "## Raw evidence", ""]

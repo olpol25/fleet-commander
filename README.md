@@ -1,8 +1,10 @@
 # Fleet Commander
 
-A Mac background agent that watches your screen for a week and tells you what to automate.
+A background agent that watches your screen for a week and tells you what to automate.
 
 Not a dashboard. No charts. Just a frank advisor-style brief, like a technically fluent EA who watched your whole week and is giving you a debrief.
+
+**Setup:** [Mac](#setup--mac) · [Windows](#setup--windows)
 
 ---
 
@@ -26,14 +28,18 @@ Different recipients, same content. That's a doc that doesn't exist yet.
 
 ---
 
-What to hand to an agent:
+---
 
-Sprint kickoff prep — Agent pulls open Linear issues, creates the Notion sprint
-doc from a template, pre-fills the agenda with items from last week's backlog.
-You show up and the doc is ready.
+Automation candidates:
 
-Weekly async update — You write a summary Loom every Friday. Agent drafts it
-from your Linear closes and calendar. You record, not write.
+Sprint kickoff prep
+Agent pulls open Linear issues, creates the Notion sprint doc from a template,
+pre-fills the agenda with items from last week's backlog. You show up and the
+doc is ready.
+
+Weekly async update
+You write a summary Loom every Friday. Agent drafts it from your Linear closes
+and calendar. You record, not write.
 ```
 
 ---
@@ -131,6 +137,14 @@ ScreenPipe needs data to find patterns:
 
 The brief tells you its confidence level based on how many days of data it has.
 
+**Sanity check:** After 30 minutes, run this to confirm ScreenPipe is capturing your screen activity:
+
+```bash
+python brief.py --dry-run
+```
+
+You should see app names and window titles from your recent activity. If you see 0 rows or only generic entries, ScreenPipe may not have screen recording permission — go back to step 2.
+
 ---
 
 ## Setup — Windows
@@ -195,6 +209,14 @@ Same data accumulation timeline as Mac:
 - **2 hours** → first useful brief (context-switch and focus data only)
 - **3 days** → day-of-week trends start emerging
 - **3 weeks** → repeated sequence patterns surface ("you do this every Monday")
+
+**Sanity check:** After 30 minutes, open Command Prompt and run:
+
+```cmd
+python brief.py --dry-run
+```
+
+You should see app names and window titles from your recent activity. If you see 0 rows, ScreenPipe may not have screen capture permission — go back to step 4.
 
 ---
 
