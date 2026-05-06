@@ -268,7 +268,8 @@ def find_repeated_sequences(rows, min_weeks=3, lookback_weeks=4):
 # ---------------------------------------------------------------------------
 
 def find_focus_fragmentation(rows, min_break_seconds=30):
-    """Longest uninterrupted focus block per day. Glances < 30s don't break a block."""
+    """Longest uninterrupted focus block per day. Glances < 30s don't break a block.
+    Duration is summed from actual recorded segments — sleep/idle gaps are excluded."""
     if not rows:
         return []
 
@@ -282,20 +283,37 @@ def find_focus_fragmentation(rows, min_break_seconds=30):
         if not segments:
             continue
 
-        focus_blocks, curr_app, block_start = [], segments[0][0], segments[0][2]
-        for seg_app, _, seg_start, seg_end in segments[1:]:
-            if seg_app != curr_app and (seg_end - seg_start).total_seconds() >= min_break_seconds:
-                focus_blocks.append((curr_app, block_start, seg_start))
-                curr_app, block_start = seg_app, seg_start
-        focus_blocks.append((curr_app, block_start, segments[-1][3]))
+        # Group segments into focus blocks.
+        # Each block is a list of segments — duration is the SUM of segment lengths,
+        # not wall-clock start-to-end, so sleep gaps don't inflate the number.
+        focus_blocks = []
+        curr_app = segments[0][0]
+        curr_segs = [segments[0]]
 
-        durations = [(end - start).total_seconds() / 60 for _, start, end in focus_blocks]
+        for seg in segments[1:]:
+            seg_app, _, seg_start, seg_end = seg
+            if seg_app != curr_app and (seg_end - seg_start).total_seconds() >= min_break_seconds:
+                focus_blocks.append((curr_app, curr_segs))
+                curr_app = seg_app
+                curr_segs = [seg]
+            else:
+                curr_segs.append(seg)
+
+        focus_blocks.append((curr_app, curr_segs))
+
+        def block_minutes(segs):
+            return sum((s[3] - s[2]).total_seconds() for s in segs) / 60
+
+        durations = [block_minutes(segs) for _, segs in focus_blocks]
         result.append({
             "date": day.isoformat(),
             "day": day.strftime("%a"),
             "longest_block_min": round(max(durations), 1) if durations else 0,
             "blocks_over_30min": sum(1 for d in durations if d >= 30),
-            "_evidence": [(b[0], b[1].isoformat(), b[2].isoformat()) for b in focus_blocks[:5]],
+            "_evidence": [
+                (app, segs[0][2].isoformat(), segs[-1][3].isoformat())
+                for app, segs in focus_blocks[:5]
+            ],
         })
 
     return result
@@ -313,16 +331,19 @@ def call_claude(patterns, days_of_data, confidence):
 
     import urllib.request
 
-    prompt = f"""You are a technically fluent EA who watched this person's entire week.
+    prompt = f"""You are a productivity analyst helping someone understand their own \
+work patterns. The user has installed a self-monitoring tool on their own Mac \
+to track their own screen activity for personal productivity analysis.
 
 Here are behavioral patterns extracted from their screen activity \
 ({days_of_data} days of data, confidence {round(confidence * 10)}/10):
 
 {json.dumps(patterns, indent=2, default=str)}
 
-Write a frank debrief. Name 2-3 things they're doing that probably cost them \
-time without realizing it. Name 1-2 workflows that could be handed to an AI \
-agent — be specific about what the agent would do.
+Write a frank advisor-style brief addressed directly to the user (use "you"). \
+Name 2-3 things they are doing that probably cost them time without realizing it. \
+Name 1-2 workflows that could be handed to an AI agent — be specific about \
+what the agent would do.
 
 If the data is sparse or patterns are weak, say so directly rather than \
 fabricating patterns. Honest signal assessment beats a confident brief built on noise.
