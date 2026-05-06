@@ -394,8 +394,23 @@ nuanced, deep dive, actionable, streamline."""
         },
     )
 
-    with urllib.request.urlopen(req, timeout=60) as resp:
-        result = json.loads(resp.read())
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            result = json.loads(resp.read())
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", errors="replace")
+        if e.code == 401:
+            log.error("API key rejected (401). Check your ANTHROPIC_API_KEY is correct.")
+        elif e.code == 529:
+            log.error("Anthropic API is overloaded (529). Wait a minute and try again.")
+        elif e.code == 429:
+            log.error("Rate limit hit (429). Wait a minute and try again.")
+        else:
+            log.error("API error %d: %s", e.code, body[:200])
+        sys.exit(1)
+    except urllib.error.URLError as e:
+        log.error("Network error reaching Anthropic API: %s", e.reason)
+        sys.exit(1)
 
     for block in result.get("content", []):
         if block.get("type") == "tool_use" and block.get("name") == "write_brief":
