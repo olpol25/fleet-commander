@@ -10,7 +10,7 @@ Not a dashboard. No charts. Just a frank advisor-style brief, like a technically
 
 ## AI-assisted setup (Mac)
 
-The fastest way to install is to hand it to an AI agent. Open Claude, ChatGPT, or any agent that can run terminal commands and paste this:
+The fastest way to install is to hand it to an AI agent. Open Claude Code, Codex, or any agent that can run terminal commands and paste this:
 
 ```
 Retrieve and follow the instructions at:
