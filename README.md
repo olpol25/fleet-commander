@@ -4,7 +4,20 @@ A background agent that watches your screen for a week and tells you what to aut
 
 Not a dashboard. No charts. Just a frank advisor-style brief, like a technically fluent EA who watched your whole week and is giving you a debrief.
 
-**Setup:** [Mac](#setup--mac) · [Windows](#setup--windows)
+**Setup:** [AI-assisted (Mac)](#ai-assisted-setup-mac) · [Mac (manual)](#setup--mac) · [Windows](#setup--windows)
+
+---
+
+## AI-assisted setup (Mac)
+
+The fastest way to install is to hand it to an AI agent. Open Claude, ChatGPT, or any agent that can run terminal commands and paste this:
+
+```
+Retrieve and follow the instructions at:
+https://raw.githubusercontent.com/olpol25/fleet-commander/main/INSTALL_FOR_AGENTS.md
+```
+
+The agent will install ScreenPipe, configure auto-restart, set your API key, and verify the install. The one thing it will ask you to do yourself is grant screen recording permission in System Settings — that requires a click in a macOS dialog the agent can't reach.
 
 ---
 
