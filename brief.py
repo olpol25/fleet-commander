@@ -61,6 +61,29 @@ GENERIC_TITLES = {
     "extension: newtab", "start page", "home",
 }
 
+# macOS system overlays that ScreenPipe captures as "apps" but are not real
+# work context — notifications, Dock badges, Control Centre glances, etc.
+# These inflate switch counts and destroy focus fragmentation accuracy.
+SYSTEM_OVERLAY_APPS = {
+    "control centre",
+    "notification centre",
+    "notification center",
+    "dock",
+    "spotlight",
+    "system preferences",
+    "system settings",
+    "archive utility",
+    "powerchime",
+    "captive network assistant",
+    "loginwindow",
+    "screensaver",
+    "systemuiserver",
+    "universalaccessd",
+    "sharingd",
+    "finder",          # Finder glances (opening a file) inflate switches;
+                       # remove if you do heavy Finder work and want it tracked
+}
+
 
 # ---------------------------------------------------------------------------
 # Logging — writes to file when run by launchd, stdout when run manually
@@ -133,6 +156,9 @@ def load_rows(conn, days=7):
     rows, skipped = [], 0
     for ts_str, app, window in rows_raw:
         if not app or not window:
+            skipped += 1
+            continue
+        if app.strip().lower() in SYSTEM_OVERLAY_APPS:
             skipped += 1
             continue
         try:
@@ -267,7 +293,7 @@ def find_repeated_sequences(rows, min_weeks=3, lookback_weeks=4):
 # Step 3c: Deep work fragmentation
 # ---------------------------------------------------------------------------
 
-def find_focus_fragmentation(rows, min_break_seconds=30):
+def find_focus_fragmentation(rows, min_break_seconds=180):
     """Longest uninterrupted focus block per day. Glances < 30s don't break a block.
     Duration is summed from actual recorded segments — sleep/idle gaps are excluded."""
     if not rows:
@@ -284,27 +310,43 @@ def find_focus_fragmentation(rows, min_break_seconds=30):
             continue
 
         # Group segments into focus blocks.
-        # Each block is a list of segments — duration is the SUM of segment lengths,
-        # not wall-clock start-to-end, so sleep gaps don't inflate the number.
+        # A focus block breaks when the focus app has NOT been seen for
+        # min_break_seconds — i.e. we track when curr_app was last seen,
+        # not the duration of the interrupting app (which at 0.2 fps is always
+        # a single 5-second frame and would never trigger a break).
+        FRAME_S = 5.0  # 1 frame per 5 seconds at 0.2 fps
+
+        def seg_end_ts(seg):
+            return max(seg[3], seg[2] + timedelta(seconds=FRAME_S))
+
         focus_blocks = []
         curr_app = segments[0][0]
         curr_segs = [segments[0]]
+        last_curr_app_ts = seg_end_ts(segments[0])
 
         for seg in segments[1:]:
             seg_app, _, seg_start, seg_end = seg
-            if seg_app != curr_app and (seg_end - seg_start).total_seconds() >= min_break_seconds:
+            if seg_app == curr_app:
+                curr_segs.append(seg)
+                last_curr_app_ts = seg_end_ts(seg)
+            elif (seg_start - last_curr_app_ts).total_seconds() >= min_break_seconds:
+                # Focus app absent for long enough — start a new block
                 focus_blocks.append((curr_app, curr_segs))
                 curr_app = seg_app
                 curr_segs = [seg]
-            else:
-                curr_segs.append(seg)
+                last_curr_app_ts = seg_end_ts(seg)
+            # else: brief glance at another app, don't switch the focus app
 
         focus_blocks.append((curr_app, curr_segs))
 
-        def block_minutes(segs):
-            return sum((s[3] - s[2]).total_seconds() for s in segs) / 60
+        def block_minutes(focus_app, segs):
+            # Only count time actually spent IN the focus app, not interruptions.
+            return sum(
+                max((s[3] - s[2]).total_seconds(), FRAME_S)
+                for s in segs if s[0] == focus_app
+            ) / 60
 
-        durations = [block_minutes(segs) for _, segs in focus_blocks]
+        durations = [block_minutes(app, segs) for app, segs in focus_blocks]
         result.append({
             "date": day.isoformat(),
             "day": day.strftime("%a"),
