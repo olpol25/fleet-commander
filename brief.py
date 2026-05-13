@@ -319,25 +319,26 @@ def find_focus_fragmentation(rows, min_break_seconds=180):
         def seg_end_ts(seg):
             return max(seg[3], seg[2] + timedelta(seconds=FRAME_S))
 
+        # Absence is measured to the END of each non-focus segment, so a
+        # 5min interruption is 5min of absence — not the ~0s gap between
+        # the interrupting app's first frame and the focus app's last.
         focus_blocks = []
-        curr_app = segments[0][0]
-        curr_segs = [segments[0]]
-        last_curr_app_ts = seg_end_ts(segments[0])
-
-        for seg in segments[1:]:
-            seg_app, _, seg_start, seg_end = seg
-            if seg_app == curr_app:
-                curr_segs.append(seg)
-                last_curr_app_ts = seg_end_ts(seg)
-            elif (seg_start - last_curr_app_ts).total_seconds() >= min_break_seconds:
-                # Focus app absent for long enough — start a new block
-                focus_blocks.append((curr_app, curr_segs))
-                curr_app = seg_app
-                curr_segs = [seg]
-                last_curr_app_ts = seg_end_ts(seg)
-            # else: brief glance at another app, don't switch the focus app
-
-        focus_blocks.append((curr_app, curr_segs))
+        i = 0
+        while i < len(segments):
+            block_app = segments[i][0]
+            block_segs = [segments[i]]
+            last_block_app_end = seg_end_ts(segments[i])
+            j = i + 1
+            while j < len(segments):
+                seg = segments[j]
+                if seg[0] == block_app:
+                    last_block_app_end = seg_end_ts(seg)
+                elif (seg_end_ts(seg) - last_block_app_end).total_seconds() >= min_break_seconds:
+                    break
+                block_segs.append(seg)
+                j += 1
+            focus_blocks.append((block_app, block_segs))
+            i = j
 
         def block_minutes(focus_app, segs):
             # Only count time actually spent IN the focus app, not interruptions.
