@@ -191,8 +191,10 @@ def normalize_title(title):
     # Drop notification/unread badge counts ("Inbox (5)", "(3) general") —
     # they vary week to week without changing what the user was doing.
     title = re.sub(r"\(\d+\)", "", title)
-    # Drop the trailing " — App" / " - site" suffix.
-    title = re.sub(r"\s+[—\-]\s+.+$", "", title)
+    # Drop only the trailing " — App" / " - site" chunk. Anchoring to the
+    # last separator (not the first) keeps content that itself contains a
+    # separator: "Pull Request - owner/repo - GitHub" -> "Pull Request - owner/repo".
+    title = re.sub(r"\s+[—\-]\s+[^—\-]+$", "", title)
     # Collapse whitespace left behind by the substitutions.
     return re.sub(r"\s+", " ", title).strip()
 

@@ -150,6 +150,19 @@ class RepeatedSequenceTests(unittest.TestCase):
         self.assertFalse(any("Issue" in s["title_pattern"] for s in seqs),
                          f"distinct issue IDs should not collapse into one pattern; got {seqs}")
 
+    def test_distinct_recipients_not_collapsed(self):
+        """Replying to a different person each week is not a repeated pattern."""
+        first_monday = syn.monday_at(2026, 4, 13)
+        rows = []
+        names = ["Alice", "Bob", "Carol", "Dave"]
+        for w in range(4):
+            day = first_monday + timedelta(weeks=w)
+            title = f"Reply - {names[w]} - Gmail"  # content itself contains a separator
+            rows.extend(syn.session(day.replace(hour=9), 600, "Chrome", title))
+        seqs = brief.find_repeated_sequences(rows)
+        self.assertFalse(any(s["title_pattern"] == "Reply" for s in seqs),
+                         f"distinct recipients should not collapse to 'Reply'; got {seqs}")
+
 
 # ---------------------------------------------------------------------------
 # normalize_title
@@ -178,6 +191,17 @@ class NormalizeTitleTests(unittest.TestCase):
         self.assertNotEqual(
             brief.normalize_title("Issue 1234 - GitHub"),
             brief.normalize_title("Issue 5678 - GitHub"),
+        )
+
+    def test_only_strips_trailing_app_chunk(self):
+        """When the content itself has a separator, only the trailing app/site chunk goes."""
+        self.assertEqual(
+            brief.normalize_title("Pull Request - olpol25/fleet-commander - GitHub"),
+            "Pull Request - olpol25/fleet-commander",
+        )
+        self.assertEqual(
+            brief.normalize_title("Q2 Planning - Roadmap - Notion"),
+            "Q2 Planning - Roadmap",
         )
 
 
