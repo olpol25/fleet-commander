@@ -126,6 +126,60 @@ class RepeatedSequenceTests(unittest.TestCase):
         self.assertIn("Mon", days)
         self.assertIn("Tue", days)
 
+    def test_recurring_with_varying_badge_count_detected(self):
+        """A weekly routine whose title carries a varying unread badge should still group."""
+        first_monday = syn.monday_at(2026, 4, 13)
+        rows = []
+        for w in range(4):
+            day = first_monday + timedelta(weeks=w)
+            title = f"Inbox ({w * 7 + 3}) - Gmail"  # unread count differs every week
+            rows.extend(syn.session(day.replace(hour=9), 600, "Chrome", title))
+        seqs = brief.find_repeated_sequences(rows)
+        self.assertTrue(any("Inbox" in s["title_pattern"] for s in seqs),
+                        f"badge-count variation should not prevent detection; got {seqs}")
+
+    def test_distinct_ids_in_title_not_collapsed(self):
+        """Different issue IDs are genuinely different work — must not group as one pattern."""
+        first_monday = syn.monday_at(2026, 4, 13)
+        rows = []
+        for w in range(4):
+            day = first_monday + timedelta(weeks=w)
+            title = f"Issue {1000 + w} - GitHub"  # a different issue each week
+            rows.extend(syn.session(day.replace(hour=9), 600, "Chrome", title))
+        seqs = brief.find_repeated_sequences(rows)
+        self.assertFalse(any("Issue" in s["title_pattern"] for s in seqs),
+                         f"distinct issue IDs should not collapse into one pattern; got {seqs}")
+
+
+# ---------------------------------------------------------------------------
+# normalize_title
+# ---------------------------------------------------------------------------
+
+class NormalizeTitleTests(unittest.TestCase):
+
+    def test_strips_trailing_app_suffix(self):
+        self.assertEqual(brief.normalize_title("Sprint Planning — Q2"), "Sprint Planning")
+        self.assertEqual(brief.normalize_title("main.py - myproject"), "main.py")
+
+    def test_strips_badge_count(self):
+        self.assertEqual(
+            brief.normalize_title("Inbox (5) - Gmail"),
+            brief.normalize_title("Inbox (12) - Gmail"),
+        )
+
+    def test_strips_leading_badge_count(self):
+        self.assertEqual(
+            brief.normalize_title("(3) general - Slack"),
+            brief.normalize_title("(47) general - Slack"),
+        )
+
+    def test_preserves_distinct_numbers(self):
+        """Issue IDs and other meaningful numbers must survive normalization."""
+        self.assertNotEqual(
+            brief.normalize_title("Issue 1234 - GitHub"),
+            brief.normalize_title("Issue 5678 - GitHub"),
+        )
+
 
 # ---------------------------------------------------------------------------
 # find_focus_fragmentation

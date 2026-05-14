@@ -188,7 +188,13 @@ def compute_confidence(rows):
 # ---------------------------------------------------------------------------
 
 def normalize_title(title):
-    return re.sub(r"\s+[—\-]\s+.+$", "", title).strip()
+    # Drop notification/unread badge counts ("Inbox (5)", "(3) general") —
+    # they vary week to week without changing what the user was doing.
+    title = re.sub(r"\(\d+\)", "", title)
+    # Drop the trailing " — App" / " - site" suffix.
+    title = re.sub(r"\s+[—\-]\s+.+$", "", title)
+    # Collapse whitespace left behind by the substitutions.
+    return re.sub(r"\s+", " ", title).strip()
 
 
 def compute_app_segments(rows):
