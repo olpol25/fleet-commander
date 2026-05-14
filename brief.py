@@ -294,8 +294,9 @@ def find_repeated_sequences(rows, min_weeks=3, lookback_weeks=4):
 # ---------------------------------------------------------------------------
 
 def find_focus_fragmentation(rows, min_break_seconds=180):
-    """Longest uninterrupted focus block per day. Glances < 30s don't break a block.
-    Duration is summed from actual recorded segments — sleep/idle gaps are excluded."""
+    """Longest uninterrupted focus block per day. An interruption shorter than
+    min_break_seconds doesn't break a block. Duration is summed from actual
+    recorded segments — sleep/idle gaps are excluded from the total."""
     if not rows:
         return []
 
@@ -319,9 +320,11 @@ def find_focus_fragmentation(rows, min_break_seconds=180):
         def seg_end_ts(seg):
             return max(seg[3], seg[2] + timedelta(seconds=FRAME_S))
 
-        # Absence is measured to the END of each non-focus segment, so a
-        # 5min interruption is 5min of absence — not the ~0s gap between
-        # the interrupting app's first frame and the focus app's last.
+        # A block breaks once the focus app has been absent for
+        # min_break_seconds. Absence is measured to the END of an
+        # interrupting segment (a 5min Slack detour is 5min of absence), and
+        # also covers idle/sleep gaps between two same-app segments — those
+        # gaps are real absence even though the app never changed.
         focus_blocks = []
         i = 0
         while i < len(segments):
@@ -332,6 +335,8 @@ def find_focus_fragmentation(rows, min_break_seconds=180):
             while j < len(segments):
                 seg = segments[j]
                 if seg[0] == block_app:
+                    if (seg[2] - last_block_app_end).total_seconds() >= min_break_seconds:
+                        break
                     last_block_app_end = seg_end_ts(seg)
                 elif (seg_end_ts(seg) - last_block_app_end).total_seconds() >= min_break_seconds:
                     break

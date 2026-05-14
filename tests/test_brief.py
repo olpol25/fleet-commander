@@ -183,6 +183,60 @@ class FocusFragmentationTests(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
+# Edge cases: sleep gaps, weekends, midnight spans, sparse days
+# ---------------------------------------------------------------------------
+
+class EdgeCaseTests(unittest.TestCase):
+
+    def test_sleep_gap_breaks_focus_block(self):
+        """30min coding, 2h laptop sleep, 30min coding — two 30min blocks, not one 60min block."""
+        start = syn.monday_at(2026, 5, 4)
+        rows = syn.session(start, 1800, "VSCode", "main.py")
+        resume = start + timedelta(seconds=1800) + timedelta(hours=2)
+        rows += syn.session(resume, 1800, "VSCode", "main.py")
+        frag = brief.find_focus_fragmentation(rows)
+        self.assertEqual(len(frag), 1)
+        self.assertLess(frag[0]["longest_block_min"], 35,
+                        "a 2h idle gap must break the block even though the app is unchanged")
+        self.assertGreaterEqual(frag[0]["longest_block_min"], 25)
+
+    def test_weekend_recurring_pattern_detected(self):
+        """A Saturday-morning routine repeated 4 weeks should surface like any weekday one."""
+        first_saturday = syn.monday_at(2026, 4, 13) + timedelta(days=5)
+        rows = []
+        for w in range(4):
+            day = first_saturday + timedelta(weeks=w)
+            rows.extend(syn.session(day.replace(hour=10), 1200, "Notion", "Weekly Review"))
+        seqs = brief.find_repeated_sequences(rows)
+        sat = [s for s in seqs if s["day"] == "Sat" and "Weekly Review" in s["title_pattern"]]
+        self.assertTrue(sat, f"Saturday routine should be detected; got {seqs}")
+
+    def test_midnight_spanning_block_split_by_day(self):
+        """A focus block crossing midnight is reported per calendar day, not as one block."""
+        start = syn.monday_at(2026, 5, 4).replace(hour=23)
+        rows = syn.session(start, 7200, "VSCode", "main.py")  # 23:00 -> 01:00
+        frag = brief.find_focus_fragmentation(rows)
+        self.assertEqual(len(frag), 2, "block crossing midnight should appear on two days")
+        for day in frag:
+            self.assertGreater(day["longest_block_min"], 0)
+
+    def test_sparse_day_does_not_crash(self):
+        """A day with only a handful of frames should produce sane output, not an error."""
+        start = syn.monday_at(2026, 5, 4)
+        rows = [
+            (start, "Mail", "Inbox"),
+            (start + timedelta(seconds=5), "Mail", "Inbox"),
+            (start + timedelta(seconds=10), "Chrome", "github.com"),
+        ]
+        frag = brief.find_focus_fragmentation(rows)
+        events = brief.find_transition_cost_events(rows)
+        seqs = brief.find_repeated_sequences(rows)
+        self.assertEqual(len(frag), 1)
+        self.assertEqual(events, [])
+        self.assertEqual(seqs, [])
+
+
+# ---------------------------------------------------------------------------
 # Integration: full pipeline through load_rows
 # ---------------------------------------------------------------------------
 
