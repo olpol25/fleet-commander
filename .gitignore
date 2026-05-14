@@ -12,3 +12,6 @@ __pycache__/
 # Secrets — never commit these
 .env
 *.env
+
+# Local Claude Code guidance — kept out of the repo
+CLAUDE.md
