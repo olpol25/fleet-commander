@@ -12,8 +12,3 @@ __pycache__/
 # Secrets — never commit these
 .env
 *.env
-
-# Unrelated files in this directory
-aeo_gap_analysis.py
-aeo_gaps.csv
-CLAUDE.md
